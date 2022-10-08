@@ -44,6 +44,7 @@
 #include <string>
 #include <cstring>
 #include <cstdio>
+#include <iostream>
 
 //  Local headers with support for this tutorial in "namespace tutorial"
 #include <utils/meshLoader.h>
@@ -104,6 +105,39 @@ public:
 private:
     Args() { }
 };
+
+Far::ConstIndexArray getFaceUVIndices(Far::TopologyRefiner const & meshTopology, Far::Index faceIndex, int channel=0)
+{
+	return meshTopology.GetLevel(0).GetFaceFVarValues(faceIndex, channel);
+}
+
+const float* getFaceUV(std::vector<float>   const & meshFaceVaryingUVs,		int uvIndex)
+{
+	return &meshFaceVaryingUVs[uvIndex*2];
+}
+
+void printCIA(Far::ConstIndexArray const & cia)
+{
+	Far::ConstIndexArray::const_iterator iter = cia.begin();
+	std::cerr << "[";
+	for (;iter!=cia.end();++iter)
+	{
+		std::cerr << *iter << " ";
+	}
+	std::cerr << "]" << std::endl;
+}
+
+void printUVs(Far::ConstIndexArray const & cia,std::vector<float>   const & meshFaceVaryingUVs)
+{
+	Far::ConstIndexArray::const_iterator iter = cia.begin();
+	std::cerr << "[";
+	for (;iter!=cia.end();++iter)
+	{
+		const float *uv = getFaceUV(meshFaceVaryingUVs,*iter);
+		std::cerr << "{" << uv[0] << "," << uv[1] << "} ";
+	}
+	std::cerr << "]" << std::endl;
+}
 
 //
 //  The main tessellation function:  given a mesh and vertex positions,
@@ -277,6 +311,11 @@ tessellateToObj(Far::TopologyRefiner const & meshTopology,
             }
         }
 
+        {
+        	Far::ConstIndexArray uvcia = getFaceUVIndices(meshTopology, faceIndex);
+        	printCIA(uvcia);
+        	printUVs(uvcia,meshFaceVaryingUVs);
+        }
         bool evaluateLimitStencil = true;
         if (evaluateLimitStencil){
             std::vector<float> limitStencils;
