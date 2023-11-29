@@ -77,6 +77,12 @@ int main(int argc, char **argv) {
             std::cout << boost::format("arrayIndex %1%\n") % handle->arrayIndex;
             std::cout << boost::format("patchIndex %1%\n") % handle->patchIndex;
             std::cout << boost::format("vertIndex %1%\n") % handle->vertIndex;
+
+            auto vertices = pt->GetPatchVertices(*handle);
+            for (auto iter = vertices.begin();iter!=vertices.end();++iter) {
+              std::cout << boost::format("iter %1%\n") % *iter;
+              // I have vertices index via *iter but where can I use this index to look for the vertices ?
+            }
           } else {
             std::cout << "Handle NOT FOUND\n";
           }
