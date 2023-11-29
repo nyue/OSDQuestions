@@ -1,7 +1,12 @@
 cmake_minimum_required(VERSION 3.12)
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 project(OSDQuestions)
 
+find_package(Boost CONFIG REQUIRED)
 find_package(OpenSubdiv CONFIG REQUIRED)
 
 # include_directories(${OpenSubdiv_INCLUDE_DIR})

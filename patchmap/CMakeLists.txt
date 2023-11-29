@@ -4,6 +4,7 @@ add_executable( osd_patchmap
   )
 
 target_link_libraries( osd_patchmap
+  Boost::headers
   OpenSubdiv::osdCPU_static
   OpenSubdiv::osdGPU_static
   )
