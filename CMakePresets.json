@@ -1,0 +1,36 @@
+{
+	"version": 6,
+	"cmakeMinimumRequired": {
+		"major": 3,
+		"minor": 25,
+		"patch": 0
+	},
+	"configurePresets": [
+		{
+			"name": "debug",
+			"displayName": "Debug Config",
+			"description": "debug ebug build using Ninja generator",
+			"generator": "Ninja",
+			"environment": {},
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug",
+				"CMAKE_INSTALL_PREFIX": "/tmp/osdquestions",
+				"CMAKE_MODULE_PATH": "$env{CMAKE_UTIL_PATH};$env{CMAKE_MODULE_PATH}"
+			}
+		},
+		{
+			"name": "ubuntu-debug",
+			"displayName": "Ubuntu Debug Config",
+			"description": "Ubuntu debug ebug build using Ninja generator",
+			"inherits": "debug",
+			"generator": "Ninja",
+			"binaryDir": "${sourceDir}/build/linux-debug",
+			"cacheVariables": {
+				"CPACK_GENERATOR": "DEB",
+				"Imath_DIR" : "$env{HOME}/systems/Imath/3.1.6/lib/cmake/Imath",
+				"OpenSubdiv_DIR" : "$env{HOME}/systems/OpenSubdiv/3.6.0/lib/cmake/OpenSubdiv",
+				"TBB_DIR" : "$env{HOME}/systems/tbb/2020.3/tbb/cmake"
+			}
+		}
+	]
+}
