@@ -48,6 +48,12 @@ int main(int argc, char **argv) {
                     type, options));
 
       if (refiner) {
+
+        OpenSubdiv::Far::TopologyRefiner::UniformOptions refineOptions(1);
+        refineOptions.fullTopologyInLastLevel = true;
+
+        refiner->RefineUniform(refineOptions);
+
         std::cout << boost::format("MaxLevel %1%\n") % refiner->GetMaxLevel();
         std::cout << boost::format("NumLevels %1%\n") % refiner->GetNumLevels();
         std::cout << boost::format("NumEdges %1%\n") %
@@ -61,9 +67,9 @@ int main(int argc, char **argv) {
         if (pt) {
           OpenSubdiv::Far::PatchMap pm(*pt);
 
-          double u = 1.0;
-          double v = 1.0;
-          int face_id = 0;
+          double u = 0.5;
+          double v = 0.5;
+          int face_id = 1;
           const OpenSubdiv::Far::PatchTable::PatchHandle *handle =
               pm.FindPatch(face_id, u, v);
           if (handle) {
