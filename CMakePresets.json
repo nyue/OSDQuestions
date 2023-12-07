@@ -9,7 +9,7 @@
 		{
 			"name": "debug",
 			"displayName": "Debug Config",
-			"description": "debug ebug build using Ninja generator",
+			"description": "debug build using Ninja generator",
 			"generator": "Ninja",
 			"environment": {},
 			"cacheVariables": {
@@ -21,7 +21,7 @@
 		{
 			"name": "ubuntu-debug",
 			"displayName": "Ubuntu Debug Config",
-			"description": "Ubuntu debug ebug build using Ninja generator",
+			"description": "Ubuntu debug build using Ninja generator",
 			"inherits": "debug",
 			"generator": "Ninja",
 			"binaryDir": "${sourceDir}/build/linux-debug",
