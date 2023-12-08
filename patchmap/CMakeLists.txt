@@ -22,6 +22,7 @@ target_link_libraries(original_far_5_1
 
 add_executable(dy_far_5_1
   david_yu_suggestions_far_tutorial_5_1.cpp
+  shape_utils.cpp
   )
 
 target_link_libraries(dy_far_5_1

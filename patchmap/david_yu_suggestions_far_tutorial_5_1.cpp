@@ -51,34 +51,17 @@
 #include <cstring>
 #include <cfloat>
 
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include "shape_utils.h"
+
 using namespace OpenSubdiv;
 
 typedef double Real;
 
-// pyramid geometry from catmark_pyramid_crease0.h
-static int const g_nverts = 5;
-static Real  const g_verts[24] = { 0.0f,  0.0f, 2.0f,
-                                   0.0f, -2.0f, 0.0f,
-                                   2.0f,  0.0f, 0.0f,
-                                   0.0f,  2.0f, 0.0f,
-                                  -2.0f,  0.0f, 0.0f, };
-
-
-static int const g_vertsperface[5] = { 3, 3, 3, 3, 4 };
-
-static int const g_nfaces = 5;
-static int const g_faceverts[16] = { 0, 1, 2,
-                                     0, 2, 3,
-                                     0, 3, 4,
-                                     0, 4, 1,
-                                     4, 3, 2, 1 };
-
-static int const g_ncreases = 4;
-static int const g_creaseverts[8] = { 4, 3, 3, 2, 2, 1, 1, 4 };
-static float const g_creaseweights[4] = { 3.0f, 3.0f, 3.0f, 3.0f };
-
 // Creates a Far::TopologyRefiner from the pyramid shape above
-static Far::TopologyRefiner * createTopologyRefiner();
+static Far::TopologyRefiner * createTopologyRefiner(const Shape *shape);
 
 //------------------------------------------------------------------------------
 // Vertex container implementation.
@@ -135,10 +118,21 @@ struct LimitFrame {
 };
 
 //------------------------------------------------------------------------------
-int main(int, char **) {
+int main(int argc, char **argv) {
+
+    if (argc!=2)
+    {
+        std::cerr << "Usage : app <OBJ FILE>\n";
+        return 1;
+    }
+    std::ifstream objstream(argv[1]);
+    std::stringstream objbuffer;
+    objbuffer << objstream.rdbuf();
+
+    Shape *shape = Shape::parseObj(objbuffer.str().c_str(), Scheme::kCatmark);
 
     // Generate a Far::TopologyRefiner (see tutorial_1_1 for details).
-    Far::TopologyRefiner * refiner = createTopologyRefiner();
+    Far::TopologyRefiner * refiner = createTopologyRefiner(shape);
 
     // Patches are constructed from adaptively refined faces, but the processes
     // of constructing the PatchTable and of applying adaptive refinement have
@@ -193,7 +187,7 @@ int main(int, char **) {
     // Create a buffer to hold the position of the refined verts and
     // local points, then copy the coarse positions at the beginning.
     std::vector<Vertex> verts(nRefinerVertices + nLocalPoints);
-    std::memcpy(&verts[0], g_verts, g_nverts*3*sizeof(Real));
+    std::memcpy(&verts[0], shape->verts.data(), shape->GetNumVertices()*3*sizeof(Real));
 
     // Adaptive refinement may result in fewer levels than the max specified.
     int nRefinedLevels = refiner->GetNumLevels();
@@ -310,7 +304,7 @@ int main(int, char **) {
 
 //------------------------------------------------------------------------------
 static Far::TopologyRefiner *
-createTopologyRefiner() {
+createTopologyRefiner(const Shape *shape) {
 
 
     typedef Far::TopologyDescriptor Descriptor;
@@ -321,13 +315,11 @@ createTopologyRefiner() {
     options.SetVtxBoundaryInterpolation(Sdc::Options::VTX_BOUNDARY_EDGE_ONLY);
 
     Descriptor desc;
-    desc.numVertices = g_nverts;
-    desc.numFaces = g_nfaces;
-    desc.numVertsPerFace = g_vertsperface;
-    desc.vertIndicesPerFace = g_faceverts;
-    desc.numCreases = g_ncreases;
-    desc.creaseVertexIndexPairs = g_creaseverts;
-    desc.creaseWeights = g_creaseweights;
+
+    desc.numVertices = shape->GetNumVertices();
+    desc.numFaces = shape->GetNumFaces();
+    desc.numVertsPerFace = shape->nvertsPerFace.data();
+    desc.vertIndicesPerFace = shape->faceverts.data();
 
     // Instantiate a Far::TopologyRefiner from the descriptor.
     Far::TopologyRefiner * refiner =
