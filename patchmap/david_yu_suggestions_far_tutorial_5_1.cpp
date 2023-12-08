@@ -54,6 +54,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <boost/format.hpp>
 #include "shape_utils.h"
 
 using namespace OpenSubdiv;
@@ -131,6 +132,14 @@ int main(int argc, char **argv) {
 
     Shape *shape = Shape::parseObj(objbuffer.str().c_str(), Scheme::kCatmark);
 
+    if (!shape) {
+        std::cerr << "Shape::parseObj failed\n";
+        return 1;
+    }
+
+    // NICHOLAS
+    // std::cout << shape->genObj() << "\n";
+
     // Generate a Far::TopologyRefiner (see tutorial_1_1 for details).
     Far::TopologyRefiner * refiner = createTopologyRefiner(shape);
 
@@ -189,6 +198,12 @@ int main(int argc, char **argv) {
     std::vector<Vertex> verts(nRefinerVertices + nLocalPoints);
     std::memcpy(&verts[0], shape->verts.data(), shape->GetNumVertices()*3*sizeof(Real));
 
+    // NICHOLAS
+    {
+        for (auto v : verts) {
+          std::cout << boost::format("v %1% %2% %3%\n") % v.point[0] % v.point[1] % v.point[2];
+        }
+    }
     // Adaptive refinement may result in fewer levels than the max specified.
     int nRefinedLevels = refiner->GetNumLevels();
 
