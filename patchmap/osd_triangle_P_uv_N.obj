@@ -1,0 +1,17 @@
+# File exported by Houdini 19.5.773 (www.sidefx.com)
+# 3 points
+# 3 vertices
+# 1 primitives
+# Bounds: [-2, 0, 0] to [2, 3, 0]
+g 
+v 2 0 0
+v 0 3 0
+v -2 0 0
+vt 0.981303692 0 0
+vt 0.490651846 0.735977769 0
+vt 0 0 0
+vn 0 0 1
+vn 0 0 1
+vn 0 0 1
+g 
+f 1/1/1 2/2/2 3/3/3
