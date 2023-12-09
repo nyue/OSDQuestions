@@ -196,10 +196,18 @@ int main(int argc, char **argv) {
     // Create a buffer to hold the position of the refined verts and
     // local points, then copy the coarse positions at the beginning.
     std::vector<Vertex> verts(nRefinerVertices + nLocalPoints);
-    std::memcpy(&verts[0], shape->verts.data(), shape->GetNumVertices()*3*sizeof(Real));
+    // NICHOLAS - cannot do memcpy because Shape stores float data, not double (Real)
+    // std::memcpy(&verts[0], shape->verts.data(), shape->GetNumVertices()*3*sizeof(Real));
 
     // NICHOLAS
     {
+        size_t index = 0;
+        for (size_t i=0;i<shape->GetNumVertices();++i) {
+          for (size_t j=0;j<3;j++) {
+            verts[i].point[j] = shape->verts.data()[index];
+            index++;
+          }
+        }
         for (auto v : verts) {
           std::cout << boost::format("v %1% %2% %3%\n") % v.point[0] % v.point[1] % v.point[2];
         }

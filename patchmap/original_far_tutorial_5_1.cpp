@@ -51,6 +51,8 @@
 #include <cstring>
 #include <cfloat>
 
+#include <boost/format.hpp>
+
 using namespace OpenSubdiv;
 
 typedef double Real;
@@ -195,6 +197,12 @@ int main(int, char **) {
     std::vector<Vertex> verts(nRefinerVertices + nLocalPoints);
     std::memcpy(&verts[0], g_verts, g_nverts*3*sizeof(Real));
 
+    // NICHOLAS
+    {
+        for (auto v : verts) {
+          std::cout << boost::format("NICHOLAS v %1% %2% %3%\n") % v.point[0] % v.point[1] % v.point[2];
+        }
+    }
     // Adaptive refinement may result in fewer levels than the max specified.
     int nRefinedLevels = refiner->GetNumLevels();
 
