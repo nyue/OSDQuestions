@@ -163,8 +163,6 @@ static int g_ncolors = 24;
 static int g_colorIndices[24] = { 0, 3, 9, 6, 7, 10, 15, 12, 13, 16, 21, 18, 19, 22, 4, 1, 5, 23,
   17, 11, 20, 2, 8, 14 };
 
-using namespace OpenSubdiv;
-
 //------------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
@@ -184,13 +182,13 @@ int main(int argc, char** argv)
   if (shape && shape->HasUV())
   {
 
-    typedef Far::TopologyDescriptor Descriptor;
+    typedef OpenSubdiv::Far::TopologyDescriptor Descriptor;
 
-    Sdc::SchemeType type = OpenSubdiv::Sdc::SCHEME_CATMARK;
+    OpenSubdiv::Sdc::SchemeType type = OpenSubdiv::Sdc::SCHEME_CATMARK;
 
-    Sdc::Options options;
-    options.SetVtxBoundaryInterpolation(Sdc::Options::VTX_BOUNDARY_EDGE_ONLY);
-    options.SetFVarLinearInterpolation(Sdc::Options::FVAR_LINEAR_NONE);
+    OpenSubdiv::Sdc::Options options;
+    options.SetVtxBoundaryInterpolation(OpenSubdiv::Sdc::Options::VTX_BOUNDARY_EDGE_ONLY);
+    options.SetFVarLinearInterpolation(OpenSubdiv::Sdc::Options::FVAR_LINEAR_NONE);
 
     // Populate a topology descriptor with our raw data
     Descriptor desc;
@@ -214,13 +212,13 @@ int main(int argc, char** argv)
     desc.fvarChannels = channels;
 
     // Instantiate a Far::TopologyRefiner from the descriptor
-    Far::TopologyRefiner* refiner = Far::TopologyRefinerFactory<Descriptor>::Create(
-      desc, Far::TopologyRefinerFactory<Descriptor>::Options(type, options));
+    OpenSubdiv::Far::TopologyRefiner* refiner = OpenSubdiv::Far::TopologyRefinerFactory<Descriptor>::Create(
+      desc, OpenSubdiv::Far::TopologyRefinerFactory<Descriptor>::Options(type, options));
 
     // Uniformly refine the topology up to 'maxlevel'
     // note: fullTopologyInLastLevel must be true to work with face-varying data
     {
-      Far::TopologyRefiner::UniformOptions refineOptions(maxlevel);
+      OpenSubdiv::Far::TopologyRefiner::UniformOptions refineOptions(maxlevel);
       refineOptions.fullTopologyInLastLevel = true;
       refiner->RefineUniform(refineOptions);
     }
@@ -256,7 +254,7 @@ int main(int argc, char** argv)
     }
 
     // Interpolate both vertex and face-varying primvar data
-    Far::PrimvarRefiner primvarRefiner(*refiner);
+    OpenSubdiv::Far::PrimvarRefiner primvarRefiner(*refiner);
 
     Vertex* srcVert = verts;
     FVarVertexUV* srcFVarUV = fvVertsUV;
@@ -281,7 +279,7 @@ int main(int argc, char** argv)
 
     { // Output OBJ of the highest level refined -----------
 
-      Far::TopologyLevel const& refLastLevel = refiner->GetLevel(maxlevel);
+      OpenSubdiv::Far::TopologyLevel const& refLastLevel = refiner->GetLevel(maxlevel);
 
       int nverts = refLastLevel.GetNumVertices();
       int nuvs = refLastLevel.GetNumFVarValues(channelUV);
@@ -319,8 +317,8 @@ int main(int argc, char** argv)
       for (int face = 0; face < nfaces; ++face)
       {
 
-        Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
-        Far::ConstIndexArray fuvs = refLastLevel.GetFaceFVarValues(face, channelUV);
+        OpenSubdiv::Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
+        OpenSubdiv::Far::ConstIndexArray fuvs = refLastLevel.GetFaceFVarValues(face, channelUV);
 
         // all refined Catmark faces should be quads
         assert(fverts.size() == 4 && fuvs.size() == 4);
