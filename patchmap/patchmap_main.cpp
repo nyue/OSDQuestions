@@ -18,24 +18,6 @@
 
 #include "shape_utils.h"
 
-void print_specific_level_positions(const OpenSubdiv::Far::TopologyRefiner *refiner, int levelOfInterest) {
-  OpenSubdiv::Far::PatchTable *patchTable =
-      OpenSubdiv::Far::PatchTableFactory::Create(*refiner);
-
-  // Compute the total number of points we need to evaluate the PatchTable.
-  // Approximations at irregular or extraordinary features require the use
-  // of additional points associated with the patches that are referred to
-  // as "local points" (i.e. local to the PatchTable).
-  int nRefinerVertices = refiner->GetNumVerticesTotal();
-  int nLocalPoints = patchTable->GetNumLocalPoints();
-
-  // Create a buffer to hold the position of the refined verts and
-  // local points, then copy the coarse positions at the beginning.
-  std::vector<Vertex> verts(nRefinerVertices + nLocalPoints);
-  std::memcpy(&verts[0], g_verts, g_nverts*3*sizeof(Real));
-
-}
-
 void print_specific_level(const OpenSubdiv::Far::TopologyRefiner *refiner, int levelOfInterest) {
 
   OpenSubdiv::Far::TopologyLevel const &thisLevel = refiner->GetLevel(levelOfInterest);
