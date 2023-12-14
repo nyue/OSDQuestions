@@ -107,24 +107,6 @@ struct FVarVertexUV
   float u, v;
 };
 
-struct FVarVertexColor
-{
-
-  // Minimal required interface ----------------------
-  void Clear() { r = g = b = a = 0.0f; }
-
-  void AddWithWeight(FVarVertexColor const& src, float weight)
-  {
-    r += weight * src.r;
-    g += weight * src.g;
-    b += weight * src.b;
-    a += weight * src.a;
-  }
-
-  // Basic 'color' layout channel
-  float r, g, b, a;
-};
-
 //------------------------------------------------------------------------------
 // Cube geometry from catmark_cube.h
 
@@ -148,20 +130,6 @@ static int g_nuvs = 14;
 
 static int g_uvIndices[24] = { 0, 1, 3, 2, 2, 3, 5, 4, 4, 5, 7, 6, 6, 7, 9, 8, 1, 10, 11, 3, 12, 0,
   2, 13 };
-
-// 'face-varying' primitive variable data & topology for color
-static float g_colors[24][4] = { { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 },
-  { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 },
-  { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 0.0, 0.0, 1.0 },
-  { 1.0, 0.0, 0.0, 1.0 }, { 1.0, 0.0, 0.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 },
-  { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 },
-  { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 },
-  { 1.0, 1.0, 1.0, 1.0 }, { 1.0, 1.0, 1.0, 1.0 } };
-
-static int g_ncolors = 24;
-
-static int g_colorIndices[24] = { 0, 3, 9, 6, 7, 10, 15, 12, 13, 16, 21, 18, 19, 22, 4, 1, 5, 23,
-  17, 11, 20, 2, 8, 14 };
 
 //------------------------------------------------------------------------------
 int main(int argc, char** argv)
@@ -198,17 +166,14 @@ int main(int argc, char** argv)
     desc.vertIndicesPerFace = g_vertIndices;
 
     int channelUV = 0;
-    int channelColor = 1;
 
     // Create a face-varying channel descriptor
     Descriptor::FVarChannel channels[2];
     channels[channelUV].numValues = g_nuvs;
     channels[channelUV].valueIndices = g_uvIndices;
-    channels[channelColor].numValues = g_ncolors;
-    channels[channelColor].valueIndices = g_colorIndices;
 
     // Add the channel topology to the main descriptor
-    desc.numFVarChannels = 2;
+    desc.numFVarChannels = 1;
     desc.fvarChannels = channels;
 
     // Instantiate a Far::TopologyRefiner from the descriptor
@@ -242,39 +207,23 @@ int main(int argc, char** argv)
       fvVertsUV[i].v = g_uvs[i][1];
     }
 
-    // Allocate & interpolate the 'face-varying' primvar data (colors)
-    std::vector<FVarVertexColor> fvBufferColor(refiner->GetNumFVarValuesTotal(channelColor));
-    FVarVertexColor* fvVertsColor = &fvBufferColor[0];
-    for (int i = 0; i < g_ncolors; ++i)
-    {
-      fvVertsColor[i].r = g_colors[i][0];
-      fvVertsColor[i].g = g_colors[i][1];
-      fvVertsColor[i].b = g_colors[i][2];
-      fvVertsColor[i].a = g_colors[i][3];
-    }
-
     // Interpolate both vertex and face-varying primvar data
     OpenSubdiv::Far::PrimvarRefiner primvarRefiner(*refiner);
 
     Vertex* srcVert = verts;
     FVarVertexUV* srcFVarUV = fvVertsUV;
-    FVarVertexColor* srcFVarColor = fvVertsColor;
 
     for (int level = 1; level <= maxlevel; ++level)
     {
       Vertex* dstVert = srcVert + refiner->GetLevel(level - 1).GetNumVertices();
       FVarVertexUV* dstFVarUV =
         srcFVarUV + refiner->GetLevel(level - 1).GetNumFVarValues(channelUV);
-      FVarVertexColor* dstFVarColor =
-        srcFVarColor + refiner->GetLevel(level - 1).GetNumFVarValues(channelColor);
 
       primvarRefiner.Interpolate(level, srcVert, dstVert);
       primvarRefiner.InterpolateFaceVarying(level, srcFVarUV, dstFVarUV, channelUV);
-      primvarRefiner.InterpolateFaceVarying(level, srcFVarColor, dstFVarColor, channelColor);
 
       srcVert = dstVert;
       srcFVarUV = dstFVarUV;
-      srcFVarColor = dstFVarColor;
     }
 
     { // Output OBJ of the highest level refined -----------
@@ -283,7 +232,6 @@ int main(int argc, char** argv)
 
       int nverts = refLastLevel.GetNumVertices();
       int nuvs = refLastLevel.GetNumFVarValues(channelUV);
-      int ncolors = refLastLevel.GetNumFVarValues(channelColor);
       int nfaces = refLastLevel.GetNumFaces();
 
       // Print vertex positions
@@ -302,15 +250,6 @@ int main(int argc, char** argv)
       {
         FVarVertexUV const& uv = fvVertsUV[firstOfLastUvs + fvvert];
         printf("vt %f %f\n", uv.u, uv.v);
-      }
-
-      // Print colors
-      int firstOfLastColors = refiner->GetNumFVarValuesTotal(channelColor) - ncolors;
-
-      for (int fvvert = 0; fvvert < ncolors; ++fvvert)
-      {
-        FVarVertexColor const& c = fvVertsColor[firstOfLastColors + fvvert];
-        printf("c %f %f %f %f\n", c.r, c.g, c.b, c.a);
       }
 
       // Print faces
