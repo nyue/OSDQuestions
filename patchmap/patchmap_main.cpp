@@ -18,6 +18,40 @@
 
 #include "shape_utils.h"
 
+void print_specific_level_positions(const OpenSubdiv::Far::TopologyRefiner *refiner, int levelOfInterest) {
+  OpenSubdiv::Far::PatchTable *patchTable =
+      OpenSubdiv::Far::PatchTableFactory::Create(*refiner);
+
+  // Compute the total number of points we need to evaluate the PatchTable.
+  // Approximations at irregular or extraordinary features require the use
+  // of additional points associated with the patches that are referred to
+  // as "local points" (i.e. local to the PatchTable).
+  int nRefinerVertices = refiner->GetNumVerticesTotal();
+  int nLocalPoints = patchTable->GetNumLocalPoints();
+
+  // Create a buffer to hold the position of the refined verts and
+  // local points, then copy the coarse positions at the beginning.
+  std::vector<Vertex> verts(nRefinerVertices + nLocalPoints);
+  std::memcpy(&verts[0], g_verts, g_nverts*3*sizeof(Real));
+
+}
+
+void print_specific_level(const OpenSubdiv::Far::TopologyRefiner *refiner, int levelOfInterest) {
+
+  OpenSubdiv::Far::TopologyLevel const &thisLevel = refiner->GetLevel(levelOfInterest);
+  int thisLevelNumFaces = thisLevel.GetNumFaces();
+
+  for (int faceIndex =0, ptexface=0; faceIndex < thisLevelNumFaces; ++faceIndex) {
+    OpenSubdiv::Far::ConstIndexArray thisLevelFaceVertices =
+        thisLevel.GetFaceVertices(faceIndex);
+
+    std::cout << boost::format("thisLevelFaceVertices[lvl=%1%][%2%] : {") % levelOfInterest % faceIndex;
+    for (auto faceVertex : thisLevelFaceVertices) {
+      std::cout << boost::format(" %1%") % faceVertex;
+    }
+    std::cout << "}\n";
+  }
+}
 int main(int argc, char **argv) {
 
   if (argc == 2) {
@@ -66,23 +100,36 @@ int main(int argc, char **argv) {
         std::cout << boost::format("NumVertices %1%\n") %
                          refiner->GetNumVerticesTotal();
 
+#ifdef DONT
+
         OpenSubdiv::Far::TopologyLevel const & refBaseLevel = refiner->GetLevel(0);
+        OpenSubdiv::Far::TopologyLevel const & refLevel1 = refiner->GetLevel(1);
 
         OpenSubdiv::Far::PtexIndices ptexIndices(*refiner);
         std::cout << boost::format("ptexIndices.GetNumFaces() = %1%\n") % ptexIndices.GetNumFaces();
 
-        int nfaces = refBaseLevel.GetNumFaces();
+        int baseLevelNFaces = refBaseLevel.GetNumFaces();
+        std::cout << boost::format("baseLevelNFaces = %1%\n") % baseLevelNFaces;
         int adjfaces[4];
         int adjedges[4];
+
+        int level1NFaces = refLevel1.GetNumFaces();
+        std::cout << boost::format("level1NFaces = %1%\n") % level1NFaces;
 
         int _regFaceSize = OpenSubdiv::Sdc::SchemeTypeTraits::GetRegularFaceSize(refiner->GetSchemeType());
         std::cout << boost::format("_regFaceSize = %1%\n") % _regFaceSize;
 
-        for (int face=0, ptexface=0; face<nfaces; ++face) {
+        for (int face=0, ptexface=0; face< baseLevelNFaces; ++face) {
 
-          OpenSubdiv::Far::ConstIndexArray fverts = refBaseLevel.GetFaceVertices(face);
+          OpenSubdiv::Far::ConstIndexArray baseLevelFVerts = refBaseLevel.GetFaceVertices(face);
 
-          if (fverts.size()==_regFaceSize) {
+          std::cout << boost::format("baseLevelFVerts[%1%] : {") % face;
+          for (auto faceIndex : baseLevelFVerts) {
+            std::cout << boost::format(" %1%") % faceIndex;
+          }
+          std::cout << "}\n";
+
+          if (baseLevelFVerts.size()==_regFaceSize) {
             ptexIndices.GetAdjacency(*refiner, face, 0, adjfaces, adjedges);
             // _adjacency[ptexface] = FaceInfo(adjfaces, adjedges, false);
             std::cout << boost::format("IS _regFaceSize adjfaces[%1% %2% %3% %4%] adjedges[%5% %6% %7% %8%]\n")
@@ -98,7 +145,7 @@ int main(int argc, char **argv) {
                 ;
             ++ptexface;
           } else {
-            for (int vert=0; vert<fverts.size(); ++vert) {
+            for (int vert=0; vert< baseLevelFVerts.size(); ++vert) {
               ptexIndices.GetAdjacency(*refiner, face, vert, adjfaces, adjedges);
               // _adjacency[ptexface+vert] = FaceInfo(adjfaces, adjedges, true);
             }
@@ -113,21 +160,30 @@ int main(int argc, char **argv) {
                              % adjedges[2]
                              % adjedges[3]
                 ;
-            ptexface+=fverts.size();
+            ptexface+= baseLevelFVerts.size();
           }
         }
+        for (int face=0, ptexface=0; face< level1NFaces; ++face) {
+          OpenSubdiv::Far::ConstIndexArray level1FVerts = refLevel1.GetFaceVertices(face);
 
-
+          std::cout << boost::format("level1FVerts[%1%] : {") % face;
+          for (auto faceIndex : level1FVerts) {
+            std::cout << boost::format(" %1%") % faceIndex;
+          }
+          std::cout << "}\n";
+        }
+#endif
+        print_specific_level(refiner, 0);
+        print_specific_level(refiner, 1);
 
         OpenSubdiv::Far::PatchTable *patchTable =
             OpenSubdiv::Far::PatchTableFactory::Create(*refiner);
         if (patchTable) {
           OpenSubdiv::Far::PatchMap patchMap(*patchTable);
 
-          double u = 0.5;
-          double v = 0.5;
-          int face_id = 1;
-
+          double u = 0.4;
+          double v = 0.4;
+          int face_id = 2;
 
           const OpenSubdiv::Far::PatchTable::PatchHandle *handle =
               patchMap.FindPatch(face_id, u, v);
