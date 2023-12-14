@@ -108,30 +108,6 @@ struct FVarVertexUV
 };
 
 //------------------------------------------------------------------------------
-// Cube geometry from catmark_cube.h
-
-// 'vertex' primitive variable data & topology
-static float g_verts[8][3] = { { -0.5f, -0.5f, 0.5f }, { 0.5f, -0.5f, 0.5f }, { -0.5f, 0.5f, 0.5f },
-  { 0.5f, 0.5f, 0.5f }, { -0.5f, 0.5f, -0.5f }, { 0.5f, 0.5f, -0.5f }, { -0.5f, -0.5f, -0.5f },
-  { 0.5f, -0.5f, -0.5f } };
-static int g_nverts = 8, g_nfaces = 6;
-
-static int g_vertsperface[6] = { 4, 4, 4, 4, 4, 4 };
-
-static int g_vertIndices[24] = { 0, 1, 3, 2, 2, 3, 5, 4, 4, 5, 7, 6, 6, 7, 1, 0, 1, 7, 5, 3, 6, 0,
-  2, 4 };
-
-// 'face-varying' primitive variable data & topology for UVs
-static float g_uvs[14][2] = { { 0.375, 0.00 }, { 0.625, 0.00 }, { 0.375, 0.25 }, { 0.625, 0.25 },
-  { 0.375, 0.50 }, { 0.625, 0.50 }, { 0.375, 0.75 }, { 0.625, 0.75 }, { 0.375, 1.00 },
-  { 0.625, 1.00 }, { 0.875, 0.00 }, { 0.875, 0.25 }, { 0.125, 0.00 }, { 0.125, 0.25 } };
-
-static int g_nuvs = 14;
-
-static int g_uvIndices[24] = { 0, 1, 3, 2, 2, 3, 5, 4, 4, 5, 7, 6, 6, 7, 9, 8, 1, 10, 11, 3, 12, 0,
-  2, 13 };
-
-//------------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
 
@@ -160,17 +136,17 @@ int main(int argc, char** argv)
 
     // Populate a topology descriptor with our raw data
     Descriptor desc;
-    desc.numVertices = g_nverts;
-    desc.numFaces = g_nfaces;
-    desc.numVertsPerFace = g_vertsperface;
-    desc.vertIndicesPerFace = g_vertIndices;
+    desc.numVertices = shape->GetNumVertices();
+    desc.numFaces = shape->GetNumFaces();
+    desc.numVertsPerFace = shape->nvertsPerFace.data();
+    desc.vertIndicesPerFace = shape->faceverts.data();
 
     int channelUV = 0;
 
     // Create a face-varying channel descriptor
-    Descriptor::FVarChannel channels[2];
-    channels[channelUV].numValues = g_nuvs;
-    channels[channelUV].valueIndices = g_uvIndices;
+    Descriptor::FVarChannel channels[1];
+    channels[channelUV].numValues = shape->faceuvs.size();
+    channels[channelUV].valueIndices = shape->faceuvs.data();
 
     // Add the channel topology to the main descriptor
     desc.numFVarChannels = 1;
@@ -193,18 +169,19 @@ int main(int argc, char** argv)
     std::vector<Vertex> vbuffer(refiner->GetNumVerticesTotal());
     Vertex* verts = &vbuffer[0];
 
-    for (int i = 0; i < g_nverts; ++i)
+    for (int i = 0; i < desc.numVertices; ++i)
     {
-      verts[i].SetPosition(g_verts[i][0], g_verts[i][1], g_verts[i][2]);
+      verts[i].SetPosition(shape->verts[i*3], shape->verts[i*3+1], shape->verts[i*3+2]);
     }
 
     // Allocate and initialize the first channel of 'face-varying' primvar data (UVs)
     std::vector<FVarVertexUV> fvBufferUV(refiner->GetNumFVarValuesTotal(channelUV));
     FVarVertexUV* fvVertsUV = &fvBufferUV[0];
-    for (int i = 0; i < g_nuvs; ++i)
+    for (int i = 0; i < shape->faceuvs.size(); ++i)
     {
-      fvVertsUV[i].u = g_uvs[i][0];
-      fvVertsUV[i].v = g_uvs[i][1];
+
+      fvVertsUV[i].u = shape->uvs[i*2];
+      fvVertsUV[i].v = shape->uvs[i*2+1];
     }
 
     // Interpolate both vertex and face-varying primvar data
