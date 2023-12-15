@@ -54,6 +54,8 @@
 
 #include <boost/format.hpp>
 
+#include <Imath/ImathVec.h>
+
 #include <utils/shape_utils.h>
 
 using namespace OpenSubdiv;
@@ -142,6 +144,72 @@ struct LimitFrame
 
   Real point[3], deriv1[3], deriv2[3];
 };
+
+void VisualizationViaOBJ(const std::vector<LimitFrame>& samples, std::ostream& os)
+{ // Visualization with Maya : print a MEL script that generates particles
+  // at the location of the limit vertices
+
+  int nsamples = (int)samples.size();
+
+  os << "# file -f -new;\n";
+
+  // Output particle positions for the tangent
+  os << "# particle -n deriv1 ";
+  os << boost::format("# Number of particles %d\n") % nsamples;
+  for (int sample = 0; sample < nsamples; ++sample)
+  {
+    Real const* pos = samples[sample].point;
+    os << boost::format("v %f %f %f\n") % pos[0] % pos[1] % pos[2];
+  }
+
+  for (int sample = 0; sample < nsamples; ++sample)
+  {
+    Real const* tan1 = samples[sample].deriv1;
+    Real const* tan2 = samples[sample].deriv2;
+    Imath::Vec3<Real> _tan1(tan1[0], tan1[1], tan1[2]);
+    Imath::Vec3<Real> _tan2(tan2[0], tan2[1], tan2[2]);
+    Imath::Vec3<Real> vn = _tan1.cross(_tan2);
+    vn.normalize();
+    os << boost::format("vn %f %f %f\n") % vn[0] % vn[1] % vn[2];
+  }
+
+#ifdef DERIVATIVES_SUPPORT
+  // printf(";\n");
+  // Set per-particle direction using the limit tangent (display as 'Streak')
+  // printf("setAttr \"deriv1.particleRenderType\" 6;\n");
+  // printf("setAttr \"deriv1.velocity\" -type \"vectorArray\" %d ", nsamples);
+  for (int sample = 0; sample < nsamples; ++sample)
+  {
+    Real const* tan1 = samples[sample].deriv1;
+    printf("%f %f %f\n", tan1[0], tan1[1], tan1[2]);
+  }
+  printf(";\n");
+
+  // Output particle positions for the bi-tangent
+  printf("particle -n deriv2 ");
+  for (int sample = 0; sample < nsamples; ++sample)
+  {
+    Real const* pos = samples[sample].point;
+    printf("-p %f %f %f\n", pos[0], pos[1], pos[2]);
+  }
+  printf(";\n");
+  printf("setAttr \"deriv2.particleRenderType\" 6;\n");
+  printf("setAttr \"deriv2.velocity\" -type \"vectorArray\" %d ", nsamples);
+  for (int sample = 0; sample < nsamples; ++sample)
+  {
+    Real const* tan2 = samples[sample].deriv2;
+    printf("%f %f %f\n", tan2[0], tan2[1], tan2[2]);
+  }
+  printf(";\n");
+
+  // Exercise to the reader : cross tangent & bi-tangent for limit
+  // surface normal...
+
+  // Force Maya DAG update to see the result in the viewport
+  printf("currentTime -edit `currentTime -q`;\n");
+  printf("select deriv1Shape deriv2Shape;\n");
+#endif // DERIVATIVES_SUPPORT
+}
 
 //------------------------------------------------------------------------------
 int main(int argc, char** argv)
@@ -279,6 +347,11 @@ int main(int argc, char** argv)
     }
   }
 
+  std::ofstream output_stream("particles.obj");
+  VisualizationViaOBJ(samples,output_stream);
+  output_stream.close();
+
+  if (false)
   { // Visualization with Maya : print a MEL script that generates particles
     // at the location of the limit vertices
 
