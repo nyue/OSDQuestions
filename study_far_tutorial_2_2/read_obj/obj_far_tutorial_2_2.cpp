@@ -34,6 +34,8 @@
 
 #include <opensubdiv/far/primvarRefiner.h>
 #include <opensubdiv/far/topologyDescriptor.h>
+#include <opensubdiv/far/ptexIndices.h>
+#include <opensubdiv/far/patchMap.h>
 
 #include <boost/format.hpp>
 
@@ -260,6 +262,17 @@ int main(int argc, char** argv)
 
     WriteOBJ(maxlevel, channelUV, verts, fvVertsUV, refiner,
       (boost::format("output_%02d.obj") % maxlevel).str());
+
+    {
+      // Unsure if using refiner after interpolate is call makes any difference
+      OpenSubdiv::Far::PtexIndices ptexIndices(*refiner);
+      int numFaces = ptexIndices.GetNumFaces();
+      std::cout << boost::format("numFaces = %1%\n") % numFaces;
+      for (int faceIndex=0; faceIndex < numFaces; faceIndex++) {
+        int faceID = ptexIndices.GetFaceId(faceIndex);
+        std::cout << boost::format("ptexID[f=%1%]=%2%\n") % faceIndex % faceID;
+      }
+    }
 
     delete refiner;
     return EXIT_SUCCESS;

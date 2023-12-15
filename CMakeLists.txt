@@ -18,3 +18,5 @@ include_directories(.)
 add_subdirectory(limit_stencil_with_fvar_uv)
 add_subdirectory(patchmap)
 add_subdirectory(study_far_tutorial_2_2)
+add_subdirectory(study_far_tutorial_5_1)
+
