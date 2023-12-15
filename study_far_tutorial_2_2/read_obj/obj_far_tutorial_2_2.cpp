@@ -117,7 +117,6 @@ int main(int argc, char** argv)
     return EXIT_FAILURE;
   }
   int maxlevel = atoi(argv[1]);
-  int channelUV = 0;
   std::ifstream objstream(argv[2]);
   std::stringstream objbuffer;
   objbuffer << objstream.rdbuf();
