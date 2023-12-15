@@ -45,6 +45,11 @@
 #include <opensubdiv/far/ptexIndices.h>
 #include <opensubdiv/far/topologyDescriptor.h>
 
+#include <vtkNew.h>
+#include <vtkStructuredPoints.h>
+#include <vtkUnstructuredGrid.h>
+#include <vtkXMLUnstructuredGridWriter.h>
+
 #include <cassert>
 #include <cstdio>
 #include <cstring>

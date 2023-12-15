@@ -6,6 +6,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(OSDQuestions)
 
+find_package(VTK CONFIG REQUIRED)
 find_package(Imath CONFIG REQUIRED)
 find_package(Boost CONFIG REQUIRED)
 find_package(OpenSubdiv CONFIG REQUIRED)

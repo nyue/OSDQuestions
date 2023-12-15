@@ -28,6 +28,7 @@
 			"cacheVariables": {
 				"CPACK_GENERATOR": "DEB",
 				"Imath_DIR" : "$env{HOME}/systems/Imath/3.1.6/lib/cmake/Imath",
+				"VTK_DIR" : "$env{HOME}/systems/VTK/9.3.0/lib/cmake/vtk-9.3",
 				"Boost_DIR" : "$env{HOME}/systems/boost/1.77.0/lib/cmake/Boost-1.77.0",
 				"OpenSubdiv_DIR" : "$env{HOME}/systems/OpenSubdiv/3.6.0/lib/cmake/OpenSubdiv",
 				"TBB_DIR" : "$env{HOME}/systems/tbb/2020.3/tbb/cmake"
