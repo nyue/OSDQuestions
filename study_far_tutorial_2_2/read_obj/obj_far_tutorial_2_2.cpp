@@ -35,6 +35,8 @@
 #include <opensubdiv/far/primvarRefiner.h>
 #include <opensubdiv/far/topologyDescriptor.h>
 
+#include <boost/format.hpp>
+
 #include <cstdio>
 #include <fstream>
 #include <iostream>
@@ -107,6 +109,59 @@ struct FVarVertexUV
   float u, v;
 };
 
+// Output OBJ of the highest level refined -----------
+void WriteOBJ(int maxlevel, int channelUV, const Vertex* verts, const FVarVertexUV* fvVertsUV,
+  const OpenSubdiv::Far::TopologyRefiner* refiner, const std::string& objFilename)
+{
+
+  std::ofstream objFile;
+  objFile.open(objFilename);
+  objFile << boost::format("# maxlevel = %1%\n") % maxlevel;
+  OpenSubdiv::Far::TopologyLevel const& refLastLevel = refiner->GetLevel(maxlevel);
+
+  int nverts = refLastLevel.GetNumVertices();
+  int nuvs = refLastLevel.GetNumFVarValues(channelUV);
+  int nfaces = refLastLevel.GetNumFaces();
+
+  // Print vertex positions
+  int firstOfLastVerts = refiner->GetNumVerticesTotal() - nverts;
+
+  for (int vert = 0; vert < nverts; ++vert)
+  {
+    float const* pos = verts[firstOfLastVerts + vert].GetPosition();
+    objFile << boost::format("v %1% %2% %3%\n") % pos[0] % pos[1] % pos[2];
+  }
+
+  // Print uvs
+  int firstOfLastUvs = refiner->GetNumFVarValuesTotal(channelUV) - nuvs;
+
+  for (int fvvert = 0; fvvert < nuvs; ++fvvert)
+  {
+    FVarVertexUV const& uv = fvVertsUV[firstOfLastUvs + fvvert];
+    objFile << boost::format("vt %1% %2%\n") % uv.u % uv.v;
+  }
+
+  // Print faces
+  for (int face = 0; face < nfaces; ++face)
+  {
+
+    OpenSubdiv::Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
+    OpenSubdiv::Far::ConstIndexArray fuvs = refLastLevel.GetFaceFVarValues(face, channelUV);
+
+    // all refined Catmark faces should be quads
+    assert(fverts.size() == 4 && fuvs.size() == 4);
+
+    objFile << "f ";
+    for (int vert = 0; vert < fverts.size(); ++vert)
+    {
+      // OBJ uses 1-based arrays...
+      objFile << boost::format("%1%/%2% ") % (fverts[vert] + 1) % (fuvs[vert] + 1);
+    }
+    objFile << "\n";
+  }
+  objFile.close();
+}
+
 //------------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
@@ -152,8 +207,9 @@ int main(int argc, char** argv)
     desc.fvarChannels = channels;
 
     // Instantiate a Far::TopologyRefiner from the descriptor
-    OpenSubdiv::Far::TopologyRefiner* refiner = OpenSubdiv::Far::TopologyRefinerFactory<Descriptor>::Create(
-      desc, OpenSubdiv::Far::TopologyRefinerFactory<Descriptor>::Options(type, options));
+    OpenSubdiv::Far::TopologyRefiner* refiner =
+      OpenSubdiv::Far::TopologyRefinerFactory<Descriptor>::Create(
+        desc, OpenSubdiv::Far::TopologyRefinerFactory<Descriptor>::Options(type, options));
 
     // Uniformly refine the topology up to 'maxlevel'
     // note: fullTopologyInLastLevel must be true to work with face-varying data
@@ -170,7 +226,7 @@ int main(int argc, char** argv)
 
     for (int i = 0; i < desc.numVertices; ++i)
     {
-      verts[i].SetPosition(shape->verts[i*3], shape->verts[i*3+1], shape->verts[i*3+2]);
+      verts[i].SetPosition(shape->verts[i * 3], shape->verts[i * 3 + 1], shape->verts[i * 3 + 2]);
     }
 
     // Allocate and initialize the first channel of 'face-varying' primvar data (UVs)
@@ -179,8 +235,8 @@ int main(int argc, char** argv)
     for (int i = 0; i < shape->faceuvs.size(); ++i)
     {
 
-      fvVertsUV[i].u = shape->uvs[i*2];
-      fvVertsUV[i].v = shape->uvs[i*2+1];
+      fvVertsUV[i].u = shape->uvs[i * 2];
+      fvVertsUV[i].v = shape->uvs[i * 2 + 1];
     }
 
     // Interpolate both vertex and face-varying primvar data
@@ -202,51 +258,8 @@ int main(int argc, char** argv)
       srcFVarUV = dstFVarUV;
     }
 
-    { // Output OBJ of the highest level refined -----------
-
-      OpenSubdiv::Far::TopologyLevel const& refLastLevel = refiner->GetLevel(maxlevel);
-
-      int nverts = refLastLevel.GetNumVertices();
-      int nuvs = refLastLevel.GetNumFVarValues(channelUV);
-      int nfaces = refLastLevel.GetNumFaces();
-
-      // Print vertex positions
-      int firstOfLastVerts = refiner->GetNumVerticesTotal() - nverts;
-
-      for (int vert = 0; vert < nverts; ++vert)
-      {
-        float const* pos = verts[firstOfLastVerts + vert].GetPosition();
-        printf("v %f %f %f\n", pos[0], pos[1], pos[2]);
-      }
-
-      // Print uvs
-      int firstOfLastUvs = refiner->GetNumFVarValuesTotal(channelUV) - nuvs;
-
-      for (int fvvert = 0; fvvert < nuvs; ++fvvert)
-      {
-        FVarVertexUV const& uv = fvVertsUV[firstOfLastUvs + fvvert];
-        printf("vt %f %f\n", uv.u, uv.v);
-      }
-
-      // Print faces
-      for (int face = 0; face < nfaces; ++face)
-      {
-
-        OpenSubdiv::Far::ConstIndexArray fverts = refLastLevel.GetFaceVertices(face);
-        OpenSubdiv::Far::ConstIndexArray fuvs = refLastLevel.GetFaceFVarValues(face, channelUV);
-
-        // all refined Catmark faces should be quads
-        assert(fverts.size() == 4 && fuvs.size() == 4);
-
-        printf("f ");
-        for (int vert = 0; vert < fverts.size(); ++vert)
-        {
-          // OBJ uses 1-based arrays...
-          printf("%d/%d ", fverts[vert] + 1, fuvs[vert] + 1);
-        }
-        printf("\n");
-      }
-    }
+    WriteOBJ(maxlevel, channelUV, verts, fvVertsUV, refiner,
+      (boost::format("output_%02d.obj") % maxlevel).str());
 
     delete refiner;
     return EXIT_SUCCESS;
