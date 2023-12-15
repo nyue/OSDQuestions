@@ -46,7 +46,6 @@
 #include <opensubdiv/far/topologyDescriptor.h>
 
 #include <cassert>
-#include <cfloat>
 #include <cstdio>
 #include <cstring>
 
