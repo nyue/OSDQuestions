@@ -48,10 +48,17 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+
+#include <boost/format.hpp>
+
+#include <utils/shape_utils.h>
 
 using namespace OpenSubdiv;
 
-typedef double Real;
+typedef float Real; // Change from default double to match intended Shapes data
 
 // clang-format off
 
@@ -137,8 +144,18 @@ struct LimitFrame
 };
 
 //------------------------------------------------------------------------------
-int main(int, char**)
+int main(int argc, char** argv)
 {
+
+  if (argc != 3)
+  {
+    std::cerr << "Usage: app <level> <obj>\n";
+    return EXIT_FAILURE;
+  }
+  int maxPatchLevel = atoi(argv[1]);
+  std::ifstream objstream(argv[2]);
+  std::stringstream objbuffer;
+  objbuffer << objstream.rdbuf();
 
   // Generate a Far::TopologyRefiner (see tutorial_1_1 for details).
   Far::TopologyRefiner* refiner = createTopologyRefiner();
@@ -158,7 +175,7 @@ int main(int, char**)
   // in the shape is 3.0f (in g_creaseweights[]), and include the inf-sharp
   // crease option just to illustrate the need to syncronize options.
   //
-  int maxPatchLevel = 3;
+  // int maxPatchLevel = 3;
 
   Far::PatchTableFactory::Options patchOptions(maxPatchLevel);
   patchOptions.SetPatchPrecision<Real>();
