@@ -46,6 +46,8 @@
 #include <opensubdiv/far/topologyDescriptor.h>
 
 #include <vtkNew.h>
+#include <vtkFloatArray.h>
+#include <vtkPointData.h>
 #include <vtkStructuredPoints.h>
 #include <vtkUnstructuredGrid.h>
 #include <vtkXMLUnstructuredGridWriter.h>
@@ -216,6 +218,59 @@ void VisualizationViaOBJ(const std::vector<LimitFrame>& samples, std::ostream& o
 #endif // DERIVATIVES_SUPPORT
 }
 
+void VisualizationViaVTU(const std::vector<LimitFrame>& samples, const std::string& vtuFilename)
+{
+  vtkSmartPointer<vtkPoints> points =
+    vtkSmartPointer<vtkPoints>::New();
+
+  vtkNew<vtkFloatArray> normals;
+  normals->SetName("Normals");
+  normals->SetNumberOfComponents(3);
+
+  vtkNew<vtkFloatArray> deriv1;
+  deriv1->SetName("Derivative1");
+  deriv1->SetNumberOfComponents(3);
+
+  vtkNew<vtkFloatArray> deriv2;
+  deriv2->SetName("Derivative2");
+  deriv2->SetNumberOfComponents(3);
+
+  int nsamples = (int)samples.size();
+
+  for (int sample = 0; sample < nsamples; ++sample)
+  {
+    Real const* pos = samples[sample].point;
+    points->InsertNextPoint ( pos[0], pos[1], pos[2] );
+
+    Real const* tan1 = samples[sample].deriv1;
+    Imath::Vec3<Real> _tan1(tan1[0], tan1[1], tan1[2]);
+    _tan1.normalize();
+    deriv1->InsertNextTuple3(tan1[0], tan1[1], tan1[2]);
+
+    Real const* tan2 = samples[sample].deriv2;
+    Imath::Vec3<Real> _tan2(tan2[0], tan2[1], tan2[2]);
+    _tan2.normalize();
+    deriv2->InsertNextTuple3(tan2[0], tan2[1], tan2[2]);
+
+    Imath::Vec3<Real> normal = _tan1.cross(_tan2).normalize();
+    std::cout << normal << "\n";
+    normals->InsertNextTuple3(normal.x,normal.y,normal.z);
+  }
+
+  vtkNew<vtkUnstructuredGrid> ug;
+
+  ug->SetPoints(points);
+
+  ug->GetPointData()->SetNormals(normals);
+  ug->GetPointData()->AddArray(deriv1);
+  ug->GetPointData()->AddArray(deriv2);
+
+  vtkNew<vtkXMLUnstructuredGridWriter> writer;
+  writer->SetFileName(vtuFilename.c_str());
+  writer->SetInputData(ug);
+  writer->Write();
+}
+
 //------------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
@@ -356,56 +411,7 @@ int main(int argc, char** argv)
   VisualizationViaOBJ(samples,output_stream);
   output_stream.close();
 
-  if (false)
-  { // Visualization with Maya : print a MEL script that generates particles
-    // at the location of the limit vertices
-
-    int nsamples = (int)samples.size();
-
-    printf("file -f -new;\n");
-
-    // Output particle positions for the tangent
-    printf("particle -n deriv1 ");
-    for (int sample = 0; sample < nsamples; ++sample)
-    {
-      Real const* pos = samples[sample].point;
-      printf("-p %f %f %f\n", pos[0], pos[1], pos[2]);
-    }
-    printf(";\n");
-    // Set per-particle direction using the limit tangent (display as 'Streak')
-    printf("setAttr \"deriv1.particleRenderType\" 6;\n");
-    printf("setAttr \"deriv1.velocity\" -type \"vectorArray\" %d ", nsamples);
-    for (int sample = 0; sample < nsamples; ++sample)
-    {
-      Real const* tan1 = samples[sample].deriv1;
-      printf("%f %f %f\n", tan1[0], tan1[1], tan1[2]);
-    }
-    printf(";\n");
-
-    // Output particle positions for the bi-tangent
-    printf("particle -n deriv2 ");
-    for (int sample = 0; sample < nsamples; ++sample)
-    {
-      Real const* pos = samples[sample].point;
-      printf("-p %f %f %f\n", pos[0], pos[1], pos[2]);
-    }
-    printf(";\n");
-    printf("setAttr \"deriv2.particleRenderType\" 6;\n");
-    printf("setAttr \"deriv2.velocity\" -type \"vectorArray\" %d ", nsamples);
-    for (int sample = 0; sample < nsamples; ++sample)
-    {
-      Real const* tan2 = samples[sample].deriv2;
-      printf("%f %f %f\n", tan2[0], tan2[1], tan2[2]);
-    }
-    printf(";\n");
-
-    // Exercise to the reader : cross tangent & bi-tangent for limit
-    // surface normal...
-
-    // Force Maya DAG update to see the result in the viewport
-    printf("currentTime -edit `currentTime -q`;\n");
-    printf("select deriv1Shape deriv2Shape;\n");
-  }
+  VisualizationViaVTU(samples, "particles.vtu");
 
   delete refiner;
   delete patchTable;
