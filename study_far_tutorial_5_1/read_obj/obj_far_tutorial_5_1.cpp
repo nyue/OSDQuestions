@@ -69,34 +69,8 @@ using namespace OpenSubdiv;
 
 typedef float Real; // Change from default double to match intended Shapes data
 
-// clang-format off
-
-// pyramid geometry from catmark_pyramid_crease0.h
-static int const g_nverts = 5;
-static Real  const g_verts[24] = { 0.0f,  0.0f, 2.0f,
-                                   0.0f, -2.0f, 0.0f,
-                                   2.0f,  0.0f, 0.0f,
-                                   0.0f,  2.0f, 0.0f,
-                                  -2.0f,  0.0f, 0.0f, };
-
-
-static int const g_vertsperface[5] = { 3, 3, 3, 3, 4 };
-
-static int const g_nfaces = 5;
-static int const g_faceverts[16] = { 0, 1, 2,
-                                     0, 2, 3,
-                                     0, 3, 4,
-                                     0, 4, 1,
-                                     4, 3, 2, 1 };
-
-static int const g_ncreases = 4;
-static int const g_creaseverts[8] = { 4, 3, 3, 2, 2, 1, 1, 4 };
-static float const g_creaseweights[4] = { 3.0f, 3.0f, 3.0f, 3.0f };
-
-// clang-format on
-
 // Creates a Far::TopologyRefiner from the pyramid shape above
-static Far::TopologyRefiner* createTopologyRefiner();
+static Far::TopologyRefiner* createTopologyRefiner(const Shape* shape);
 
 //------------------------------------------------------------------------------
 // Vertex container implementation.
@@ -179,43 +153,6 @@ void VisualizationViaOBJ(const std::vector<LimitFrame>& samples, std::ostream& o
     vn.normalize();
     os << boost::format("vn %f %f %f\n") % vn[0] % vn[1] % vn[2];
   }
-
-#ifdef DERIVATIVES_SUPPORT
-  // printf(";\n");
-  // Set per-particle direction using the limit tangent (display as 'Streak')
-  // printf("setAttr \"deriv1.particleRenderType\" 6;\n");
-  // printf("setAttr \"deriv1.velocity\" -type \"vectorArray\" %d ", nsamples);
-  for (int sample = 0; sample < nsamples; ++sample)
-  {
-    Real const* tan1 = samples[sample].deriv1;
-    printf("%f %f %f\n", tan1[0], tan1[1], tan1[2]);
-  }
-  printf(";\n");
-
-  // Output particle positions for the bi-tangent
-  printf("particle -n deriv2 ");
-  for (int sample = 0; sample < nsamples; ++sample)
-  {
-    Real const* pos = samples[sample].point;
-    printf("-p %f %f %f\n", pos[0], pos[1], pos[2]);
-  }
-  printf(";\n");
-  printf("setAttr \"deriv2.particleRenderType\" 6;\n");
-  printf("setAttr \"deriv2.velocity\" -type \"vectorArray\" %d ", nsamples);
-  for (int sample = 0; sample < nsamples; ++sample)
-  {
-    Real const* tan2 = samples[sample].deriv2;
-    printf("%f %f %f\n", tan2[0], tan2[1], tan2[2]);
-  }
-  printf(";\n");
-
-  // Exercise to the reader : cross tangent & bi-tangent for limit
-  // surface normal...
-
-  // Force Maya DAG update to see the result in the viewport
-  printf("currentTime -edit `currentTime -q`;\n");
-  printf("select deriv1Shape deriv2Shape;\n");
-#endif // DERIVATIVES_SUPPORT
 }
 
 void VisualizationViaVTU(const std::vector<LimitFrame>& samples, const std::string& vtuFilename)
@@ -285,8 +222,10 @@ int main(int argc, char** argv)
   std::stringstream objbuffer;
   objbuffer << objstream.rdbuf();
 
+  const Shape* shape = Shape::parseObj(objbuffer.str().c_str(), Scheme::kCatmark);
+
   // Generate a Far::TopologyRefiner (see tutorial_1_1 for details).
-  Far::TopologyRefiner* refiner = createTopologyRefiner();
+  Far::TopologyRefiner* refiner = createTopologyRefiner(shape);
 
   // Patches are constructed from adaptively refined faces, but the processes
   // of constructing the PatchTable and of applying adaptive refinement have
@@ -342,7 +281,7 @@ int main(int argc, char** argv)
   // Create a buffer to hold the position of the refined verts and
   // local points, then copy the coarse positions at the beginning.
   std::vector<Vertex> verts(nRefinerVertices + nLocalPoints);
-  std::memcpy(&verts[0], g_verts, g_nverts * 3 * sizeof(Real));
+  std::memcpy(&verts[0], shape->verts.data(), shape->GetNumVertices() * 3 * sizeof(Real));
 
   // Adaptive refinement may result in fewer levels than the max specified.
   int nRefinedLevels = refiner->GetNumLevels();
@@ -419,7 +358,7 @@ int main(int argc, char** argv)
 }
 
 //------------------------------------------------------------------------------
-static Far::TopologyRefiner* createTopologyRefiner()
+static Far::TopologyRefiner* createTopologyRefiner(const Shape* shape)
 {
 
   typedef Far::TopologyDescriptor Descriptor;
@@ -430,14 +369,15 @@ static Far::TopologyRefiner* createTopologyRefiner()
   options.SetVtxBoundaryInterpolation(Sdc::Options::VTX_BOUNDARY_EDGE_ONLY);
 
   Descriptor desc;
-  desc.numVertices = g_nverts;
-  desc.numFaces = g_nfaces;
-  desc.numVertsPerFace = g_vertsperface;
-  desc.vertIndicesPerFace = g_faceverts;
+  desc.numVertices = shape->GetNumVertices();
+  desc.numFaces = shape->GetNumFaces();
+  desc.numVertsPerFace = shape->nvertsPerFace.data();
+  desc.vertIndicesPerFace = shape->faceverts.data();
+  /*
   desc.numCreases = g_ncreases;
   desc.creaseVertexIndexPairs = g_creaseverts;
   desc.creaseWeights = g_creaseweights;
-
+*/
   // Instantiate a Far::TopologyRefiner from the descriptor.
   Far::TopologyRefiner* refiner = Far::TopologyRefinerFactory<Descriptor>::Create(
     desc, Far::TopologyRefinerFactory<Descriptor>::Options(type, options));
